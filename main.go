@@ -1,7 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -11,32 +12,82 @@ import (
 
 func main() {
 	myApp := app.New()
-	myWindow := myApp.NewWindow("MySQL Client")
+	myWindow := myApp.NewWindow("SQLikeADog")
 
-	// Create UI components
-	queryEntry := widget.NewMultiLineEntry()
-	queryEntry.SetPlaceHolder("Enter SQL query here...")
+	// Check if configuration file exists
+	if _, err := os.Stat("dbconfig.json"); err == nil {
+		// Configuration exists, show the database page
+		showDatabasePage(myWindow)
+	} else {
+		// No configuration, show the connection setup page
+		showConnectionSetupPage(myWindow)
+	}
 
-	resultLabel := widget.NewLabel("Results will be displayed here")
+	myWindow.Resize(fyne.NewSize(400, 300))
+	myWindow.ShowAndRun()
+}
 
-	executeButton := widget.NewButton("Execute", func() {
-		query := queryEntry.Text
-		results, err := executeQuery(query)
+func showConnectionSetupPage(myWindow fyne.Window) {
+	// Create input fields for database connection details
+	userEntry := widget.NewEntry()
+	userEntry.SetPlaceHolder("Enter username")
+
+	passwordEntry := widget.NewPasswordEntry()
+	passwordEntry.SetPlaceHolder("Enter password")
+
+	hostEntry := widget.NewEntry()
+	hostEntry.SetPlaceHolder("Enter host")
+
+	dbNameEntry := widget.NewEntry()
+	dbNameEntry.SetPlaceHolder("Enter database name")
+
+	// Create a button to save the configuration
+	saveButton := widget.NewButton("Save Configuration", func() {
+		config := DBConfig{
+			User:     userEntry.Text,
+			Password: passwordEntry.Text,
+			Host:     hostEntry.Text,
+			DBName:   dbNameEntry.Text,
+		}
+
+		err := saveConfig(config, "dbconfig.json")
 		if err != nil {
-			resultLabel.SetText(fmt.Sprintf("Error: %v", err))
+			log.Printf("Error saving config: %v", err)
 		} else {
-			resultLabel.SetText(results)
+			log.Println("Configuration saved successfully")
+			showDatabasePage(myWindow)
 		}
 	})
 
 	// Layout
 	content := container.NewVBox(
-		queryEntry,
-		executeButton,
-		resultLabel,
+		userEntry,
+		passwordEntry,
+		hostEntry,
+		dbNameEntry,
+		saveButton,
 	)
 
 	myWindow.SetContent(content)
-	myWindow.Resize(fyne.NewSize(600, 400))
-	myWindow.ShowAndRun()
+}
+
+func showDatabasePage(myWindow fyne.Window) {
+	// Create a logout button
+	logoutButton := widget.NewButton("Logout", func() {
+		err := os.Remove("dbconfig.json")
+		if err != nil {
+			log.Printf("Error removing config: %v", err)
+		} else {
+			log.Println("Logged out successfully")
+			showConnectionSetupPage(myWindow)
+		}
+	})
+
+	// Layout
+	content := container.NewVBox(
+		widget.NewLabel("Welcome to the Database Page"),
+		logoutButton,
+	)
+
+	myWindow.SetContent(content)
 }

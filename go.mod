@@ -1,6 +1,6 @@
 module github.com/jeyhunr/SQLikeADog
 
-go 1.23.4
+go 1.20
 
 require (
 	fyne.io/fyne v1.4.3
