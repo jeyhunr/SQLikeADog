@@ -3,7 +3,6 @@ module github.com/jeyhunr/SQLikeADog
 go 1.20
 
 require (
-	fyne.io/fyne v1.4.3
 	fyne.io/fyne/v2 v2.5.3
 	github.com/go-sql-driver/mysql v1.6.0
 )

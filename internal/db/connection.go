@@ -5,10 +5,22 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jeyhunr/SQLikeADog/internal/utils"
 )
 
-func Connect(config utils.DBConfig) (*sql.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", config.User, config.Password, config.Host, config.DBName)
-	return sql.Open("mysql", dsn)
+var DB *sql.DB
+
+// Connect initializes the database connection
+func Connect(host, user, password, dbName string) error {
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s)/%s", user, password, host, dbName)
+	var err error
+	DB, err = sql.Open("mysql", connectionString)
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %v", err)
+	}
+
+	if err := DB.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %v", err)
+	}
+
+	return nil
 }
