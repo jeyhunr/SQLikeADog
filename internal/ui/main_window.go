@@ -5,13 +5,16 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/jeyhunr/SQLikeADog/internal/auth"
 	"github.com/jeyhunr/SQLikeADog/internal/db"
 )
 
 type MainWindow struct {
-	win fyne.Window
+	win           fyne.Window
+	selectedDB    string
+	selectedTable string
 }
 
 func NewMainWindow() *MainWindow {
@@ -28,6 +31,54 @@ func (mw *MainWindow) Show() {
 }
 
 func (mw *MainWindow) makeUI() fyne.CanvasObject {
+	// Create toolbar
+	toolbar := widget.NewToolbar(
+		widget.NewToolbarAction(theme.ContentAddIcon(), func() {
+			if mw.selectedDB == "" {
+				ShowErrorPopUp("Please select a database first", mw.win.Canvas())
+				return
+			}
+			ShowCreateTableWindow(mw.win, mw.selectedDB)
+		}),
+		widget.NewToolbarAction(theme.DocumentIcon(), func() {
+			if mw.selectedTable == "" {
+				ShowErrorPopUp("Please select a table first", mw.win.Canvas())
+				return
+			}
+			ShowEditTableWindow(mw.win, mw.selectedDB, mw.selectedTable)
+		}),
+		widget.NewToolbarSeparator(),
+		widget.NewToolbarAction(theme.ListIcon(), func() {
+			ShowSQLWindow(mw.win)
+		}),
+	)
+
+	// Add menu items
+	mainMenu := fyne.NewMainMenu(
+		fyne.NewMenu("File",
+			fyne.NewMenuItem("Execute SQL", func() {
+				ShowSQLWindow(mw.win)
+			}),
+		),
+		fyne.NewMenu("Table",
+			fyne.NewMenuItem("Create Table", func() {
+				if mw.selectedDB == "" {
+					ShowErrorPopUp("Please select a database first", mw.win.Canvas())
+					return
+				}
+				ShowCreateTableWindow(mw.win, mw.selectedDB)
+			}),
+			fyne.NewMenuItem("Edit Table", func() {
+				if mw.selectedTable == "" {
+					ShowErrorPopUp("Please select a table first", mw.win.Canvas())
+					return
+				}
+				ShowEditTableWindow(mw.win, mw.selectedDB, mw.selectedTable)
+			}),
+		),
+	)
+	mw.win.SetMainMenu(mainMenu)
+
 	// Create left sidebar for databases
 	databases, err := db.ListDatabases()
 	if err != nil {
@@ -48,8 +99,8 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 	rightContent := container.NewMax()
 
 	var showTablesList func(string) // Declare the function
-	showTablesList = func(selectedDB string) {
-		tables, err := db.ListTables(selectedDB)
+	showTablesList = func(dbName string) {
+		tables, err := db.ListTables(dbName)
 		if err != nil {
 			ShowErrorPopUp("Error listing tables: "+err.Error(), mw.win.Canvas())
 			return
@@ -65,16 +116,16 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 
 		// Handle table selection
 		tableList.OnSelected = func(id widget.ListItemID) {
-			selectedTable := tables[id]
+			mw.selectedTable = tables[id]
 
-			// Create back button
+			// r back button
 			backButton := widget.NewButton("Back to Tables", func() {
-				rightHeader.SetText("Tables in " + selectedDB)
-				showTablesList(selectedDB)
+				rightHeader.SetText("Tables in " + dbName)
+				showTablesList(dbName)
 			})
 
 			// Get table data
-			columns, data, err := db.GetTableData(selectedDB, selectedTable)
+			columns, data, err := db.GetTableData(dbName, mw.selectedTable)
 			if err != nil {
 				ShowErrorPopUp("Error fetching table data: "+err.Error(), mw.win.Canvas())
 				return
@@ -129,7 +180,7 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 			}
 
 			// Update header and content
-			rightHeader.SetText("Table: " + selectedTable)
+			rightHeader.SetText("Table: " + mw.selectedTable)
 			rightContent.Objects = []fyne.CanvasObject{
 				container.NewBorder(
 					backButton,
@@ -142,15 +193,16 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 			rightContent.Refresh()
 		}
 
-		rightHeader.SetText("Tables in " + selectedDB)
+		rightHeader.SetText("Tables in " + dbName)
 		rightContent.Objects = []fyne.CanvasObject{container.NewVScroll(tableList)}
 		rightContent.Refresh()
 	}
 
 	// Now we can use showTablesList in the OnSelected handler
 	dbList.OnSelected = func(id widget.ListItemID) {
-		selectedDB := databases[id]
-		showTablesList(selectedDB)
+		mw.selectedDB = databases[id]
+		mw.selectedTable = "" // Reset table selection
+		showTablesList(mw.selectedDB)
 	}
 
 	// Logout button
@@ -183,14 +235,21 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 		rightContent,
 	)
 
-	// Create split container
+	// Create the main split view
 	split := container.NewHSplit(
 		leftContent,
 		rightContainer,
 	)
 	split.SetOffset(0.3)
 
-	return split
+	// Combine toolbar and split view
+	return container.NewBorder(
+		toolbar, // Top
+		nil,     // Bottom
+		nil,     // Left
+		nil,     // Right
+		split,   // Center
+	)
 }
 
 func (mw *MainWindow) GetWindow() fyne.Window {
