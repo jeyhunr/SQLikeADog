@@ -44,20 +44,17 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 		},
 	)
 
-	// Create right content area (initially empty)
 	rightHeader := widget.NewLabel("Select a database to view tables")
 	rightContent := container.NewMax()
 
-	// Handle database selection
-	dbList.OnSelected = func(id widget.ListItemID) {
-		selectedDB := databases[id]
+	var showTablesList func(string) // Declare the function
+	showTablesList = func(selectedDB string) {
 		tables, err := db.ListTables(selectedDB)
 		if err != nil {
 			ShowErrorPopUp("Error listing tables: "+err.Error(), mw.win.Canvas())
 			return
 		}
 
-		// Create table list
 		tableList := widget.NewList(
 			func() int { return len(tables) },
 			func() fyne.CanvasObject { return widget.NewLabel("Template") },
@@ -66,10 +63,86 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 			},
 		)
 
-		// Update right header and content
+		// Handle table selection
+		tableList.OnSelected = func(id widget.ListItemID) {
+			selectedTable := tables[id]
+
+			// Create back button
+			backButton := widget.NewButton("Back to Tables", func() {
+				rightHeader.SetText("Tables in " + selectedDB)
+				showTablesList(selectedDB)
+			})
+
+			// Get table data
+			columns, data, err := db.GetTableData(selectedDB, selectedTable)
+			if err != nil {
+				ShowErrorPopUp("Error fetching table data: "+err.Error(), mw.win.Canvas())
+				return
+			}
+
+			// Create table widget
+			table := widget.NewTable(
+				func() (int, int) {
+					return len(data) + 1, len(columns)
+				},
+				func() fyne.CanvasObject {
+					label := widget.NewLabel("Template")
+					label.Alignment = fyne.TextAlignLeading
+					label.Wrapping = fyne.TextTruncate
+					return container.NewPadded(label)
+				},
+				func(i widget.TableCellID, o fyne.CanvasObject) {
+					label := o.(*fyne.Container).Objects[0].(*widget.Label)
+
+					if i.Row == 0 {
+						// Header row
+						label.TextStyle = fyne.TextStyle{Bold: true}
+						label.SetText(columns[i.Col])
+					} else {
+						// Data rows
+						value := data[i.Row-1][i.Col]
+						if len(value) > 50 {
+							value = value[:47] + "..."
+						}
+						label.SetText(value)
+						label.TextStyle = fyne.TextStyle{}
+					}
+				})
+
+			// Set column widths based on content
+			for i := 0; i < len(columns); i++ {
+				maxWidth := len(columns[i]) * 10 // Base width on header length
+				for _, row := range data {
+					if len(row[i])*8 > maxWidth {
+						maxWidth = len(row[i]) * 8
+					}
+				}
+				table.SetColumnWidth(i, float32(maxWidth))
+			}
+
+			// Update header and content
+			rightHeader.SetText("Table: " + selectedTable)
+			rightContent.Objects = []fyne.CanvasObject{
+				container.NewBorder(
+					backButton,
+					nil,
+					nil,
+					nil,
+					container.NewVScroll(table),
+				),
+			}
+			rightContent.Refresh()
+		}
+
 		rightHeader.SetText("Tables in " + selectedDB)
 		rightContent.Objects = []fyne.CanvasObject{container.NewVScroll(tableList)}
 		rightContent.Refresh()
+	}
+
+	// Now we can use showTablesList in the OnSelected handler
+	dbList.OnSelected = func(id widget.ListItemID) {
+		selectedDB := databases[id]
+		showTablesList(selectedDB)
 	}
 
 	// Logout button
@@ -79,27 +152,26 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 			return
 		}
 
-		// Show login window
 		loginWindow := NewLoginWindow()
 		loginWindow.Show()
 		mw.win.Close()
 	})
 
-	// Create left sidebar container with header and scrollable list
+	// Create left sidebar container
 	leftContent := container.NewBorder(
-		widget.NewLabel("Databases"), // Top
-		logoutButton,                 // Bottom
-		nil,                          // Left
-		nil,                          // Right
-		container.NewVScroll(dbList), // Center content (scrollable)
+		widget.NewLabel("Databases"),
+		logoutButton,
+		nil,
+		nil,
+		container.NewVScroll(dbList),
 	)
 
-	// Create right container with header and scrollable content
+	// Create right container
 	rightContainer := container.NewBorder(
-		rightHeader, // Top
-		nil,         // Bottom
-		nil,         // Left
-		nil,         // Right
+		rightHeader,
+		nil,
+		nil,
+		nil,
 		rightContent,
 	)
 
@@ -108,7 +180,7 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 		leftContent,
 		rightContainer,
 	)
-	split.SetOffset(0.3) // 30% width for the left sidebar
+	split.SetOffset(0.3)
 
 	return split
 }
