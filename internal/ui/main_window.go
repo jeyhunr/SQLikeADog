@@ -152,11 +152,9 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 					} else {
 						// Data rows
 						value := data[i.Row-1][i.Col]
-						// Clean up the value string
 						if value == "NULL" {
 							label.SetText("NULL")
 						} else if len(value) > 2 && value[0] == '[' && value[len(value)-1] == ']' {
-							// Remove array brackets
 							label.SetText(value[1 : len(value)-1])
 						} else {
 							if len(value) > 50 {
@@ -168,13 +166,17 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 					}
 				})
 
-			// Set column widths based on content
+			// Set fixed column widths based on content with minimum width
 			for i := 0; i < len(columns); i++ {
-				maxWidth := len(columns[i]) * 10 // Base width on header length
+				maxWidth := len(columns[i]) * 15 // Make columns wider
 				for _, row := range data {
-					if len(row[i])*8 > maxWidth {
-						maxWidth = len(row[i]) * 8
+					if len(row[i])*10 > maxWidth {
+						maxWidth = len(row[i]) * 10
 					}
+				}
+				// Ensure minimum width of 100 pixels
+				if maxWidth < 100 {
+					maxWidth = 100
 				}
 				table.SetColumnWidth(i, float32(maxWidth))
 			}
