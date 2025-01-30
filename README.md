@@ -21,6 +21,10 @@ A simple MySQL database management tool built with Go and Fyne. View and manage 
 
 1. Clone and build:
 ```
+git clone https://github.com/jeyhunr/SQLikeADog.git
+cd SQLikeADog
+go build -o SQLikeADog-APP cmd/sqlikeadog/main.go
+```
 
 2. Run the application:
 ```bash
