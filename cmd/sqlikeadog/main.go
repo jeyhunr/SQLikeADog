@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"fyne.io/fyne/v2/app"
 	"github.com/jeyhunr/SQLikeADog/internal/auth"
 	"github.com/jeyhunr/SQLikeADog/internal/db"
@@ -21,10 +19,15 @@ func main() {
 	} else {
 		// Credentials found, connect to the database and show the main window
 		if err := db.Connect(creds.Host, creds.Port, creds.User, creds.Password, creds.DBName); err != nil {
-			log.Fatal("Failed to connect to database:", err)
+			// If connection fails, delete credentials and show login window
+			_ = auth.DeleteCredentials()
+			loginWindow := ui.NewLoginWindow()
+			ui.ShowErrorPopUp("Failed to connect to database:\n"+err.Error(), loginWindow.GetWindow().Canvas())
+			loginWindow.Show()
+		} else {
+			mainWindow := ui.NewMainWindow()
+			mainWindow.Show()
 		}
-		mainWindow := ui.NewMainWindow()
-		mainWindow.Show()
 	}
 
 	myApp.Run()
