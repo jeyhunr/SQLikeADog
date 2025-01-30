@@ -24,4 +24,13 @@ go.work.sum
 # env file
 .env
 
-SQLikeADog
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Go specific
+bin/
+pkg/
+
+SQLikeADog-APP

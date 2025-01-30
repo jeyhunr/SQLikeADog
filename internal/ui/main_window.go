@@ -1,25 +1,21 @@
-package main
+package ui
 
 import (
 	"log"
 	"os"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"github.com/jeyhunr/SQLikeADog/internal/utils"
 )
 
-func main() {
-	myApp := app.New()
-	myWindow := myApp.NewWindow("SQLikeADog")
+func ShowMainWindow(app fyne.App) {
+	myWindow := app.NewWindow("SQLikeADog")
 
-	// Check if configuration file exists
 	if _, err := os.Stat("dbconfig.json"); err == nil {
-		// Configuration exists, show the database page
 		showDatabasePage(myWindow)
 	} else {
-		// No configuration, show the connection setup page
 		showConnectionSetupPage(myWindow)
 	}
 
@@ -28,7 +24,6 @@ func main() {
 }
 
 func showConnectionSetupPage(myWindow fyne.Window) {
-	// Create input fields for database connection details
 	userEntry := widget.NewEntry()
 	userEntry.SetPlaceHolder("Enter username")
 
@@ -41,16 +36,15 @@ func showConnectionSetupPage(myWindow fyne.Window) {
 	dbNameEntry := widget.NewEntry()
 	dbNameEntry.SetPlaceHolder("Enter database name")
 
-	// Create a button to save the configuration
 	saveButton := widget.NewButton("Save Configuration", func() {
-		config := DBConfig{
+		config := utils.DBConfig{
 			User:     userEntry.Text,
 			Password: passwordEntry.Text,
 			Host:     hostEntry.Text,
 			DBName:   dbNameEntry.Text,
 		}
 
-		err := saveConfig(config, "dbconfig.json")
+		err := utils.SaveConfig(config, "dbconfig.json")
 		if err != nil {
 			log.Printf("Error saving config: %v", err)
 		} else {
@@ -59,7 +53,6 @@ func showConnectionSetupPage(myWindow fyne.Window) {
 		}
 	})
 
-	// Layout
 	content := container.NewVBox(
 		userEntry,
 		passwordEntry,
@@ -72,7 +65,6 @@ func showConnectionSetupPage(myWindow fyne.Window) {
 }
 
 func showDatabasePage(myWindow fyne.Window) {
-	// Create a logout button
 	logoutButton := widget.NewButton("Logout", func() {
 		err := os.Remove("dbconfig.json")
 		if err != nil {
@@ -83,7 +75,6 @@ func showDatabasePage(myWindow fyne.Window) {
 		}
 	})
 
-	// Layout
 	content := container.NewVBox(
 		widget.NewLabel("Welcome to the Database Page"),
 		logoutButton,
