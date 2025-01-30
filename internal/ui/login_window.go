@@ -29,6 +29,10 @@ func (lw *LoginWindow) makeUI() fyne.CanvasObject {
 	dbHost := widget.NewEntry()
 	dbHost.SetPlaceHolder("Enter DB Host")
 
+	dbPort := widget.NewEntry()
+	dbPort.SetPlaceHolder("Enter Port (default: 3306)")
+	dbPort.SetText("3306")
+
 	dbUser := widget.NewEntry()
 	dbUser.SetPlaceHolder("Enter DB User")
 
@@ -42,6 +46,7 @@ func (lw *LoginWindow) makeUI() fyne.CanvasObject {
 	loginButton := widget.NewButton("Login", func() {
 		creds := auth.Credentials{
 			Host:     dbHost.Text,
+			Port:     dbPort.Text,
 			User:     dbUser.Text,
 			Password: dbPassword.Text,
 			DBName:   dbName.Text,
@@ -54,7 +59,7 @@ func (lw *LoginWindow) makeUI() fyne.CanvasObject {
 		}
 
 		// Connect to the database
-		if err := db.Connect(creds.Host, creds.User, creds.Password, creds.DBName); err != nil {
+		if err := db.Connect(creds.Host, creds.Port, creds.User, creds.Password, creds.DBName); err != nil {
 			widget.NewPopUp(widget.NewLabel("Failed to connect: "+err.Error()), lw.win.Canvas())
 			return
 		}
@@ -67,6 +72,7 @@ func (lw *LoginWindow) makeUI() fyne.CanvasObject {
 
 	return container.NewVBox(
 		dbHost,
+		dbPort,
 		dbUser,
 		dbPassword,
 		dbName,

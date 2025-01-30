@@ -10,8 +10,8 @@ import (
 var DB *sql.DB
 
 // Connect initializes the database connection
-func Connect(host, user, password, dbName string) error {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s)/%s", user, password, host, dbName)
+func Connect(host, port, user, password, dbName string) error {
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, dbName)
 	var err error
 	DB, err = sql.Open("mysql", connectionString)
 	if err != nil {

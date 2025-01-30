@@ -20,7 +20,7 @@ func main() {
 		loginWindow.Show()
 	} else {
 		// Credentials found, connect to the database and show the main window
-		if err := db.Connect(creds.Host, creds.User, creds.Password, creds.DBName); err != nil {
+		if err := db.Connect(creds.Host, creds.Port, creds.User, creds.Password, creds.DBName); err != nil {
 			log.Fatal("Failed to connect to database:", err)
 		}
 		mainWindow := ui.NewMainWindow()
