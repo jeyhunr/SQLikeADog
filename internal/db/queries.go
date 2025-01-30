@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"time"
 )
 
 // ListDatabases returns a list of all databases
@@ -71,24 +72,41 @@ func GetTableData(dbName, tableName string) ([]string, [][]string, error) {
 	defer rows.Close()
 
 	var data [][]string
-	values := make([]interface{}, len(columns))
-	valuePtrs := make([]interface{}, len(columns))
-	for i := range columns {
-		valuePtrs[i] = &values[i]
+	rawValues := make([]interface{}, len(columns))
+	scanValues := make([]interface{}, len(columns))
+
+	// Create scan destinations
+	for i := range rawValues {
+		scanValues[i] = &rawValues[i]
 	}
 
 	for rows.Next() {
-		err := rows.Scan(valuePtrs...)
+		err := rows.Scan(scanValues...)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		row := make([]string, len(columns))
-		for i, val := range values {
-			if val == nil {
+		for i, col := range rawValues {
+			if col == nil {
 				row[i] = "NULL"
-			} else {
-				row[i] = fmt.Sprintf("%v", val)
+				continue
+			}
+
+			// Type switch for proper string conversion
+			switch v := col.(type) {
+			case []byte:
+				row[i] = string(v)
+			case int64:
+				row[i] = fmt.Sprintf("%d", v)
+			case float64:
+				row[i] = fmt.Sprintf("%.2f", v)
+			case bool:
+				row[i] = fmt.Sprintf("%t", v)
+			case time.Time:
+				row[i] = v.Format("2006-01-02 15:04:05")
+			default:
+				row[i] = fmt.Sprintf("%v", v)
 			}
 		}
 		data = append(data, row)

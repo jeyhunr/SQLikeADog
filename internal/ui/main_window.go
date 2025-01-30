@@ -101,10 +101,18 @@ func (mw *MainWindow) makeUI() fyne.CanvasObject {
 					} else {
 						// Data rows
 						value := data[i.Row-1][i.Col]
-						if len(value) > 50 {
-							value = value[:47] + "..."
+						// Clean up the value string
+						if value == "NULL" {
+							label.SetText("NULL")
+						} else if len(value) > 2 && value[0] == '[' && value[len(value)-1] == ']' {
+							// Remove array brackets
+							label.SetText(value[1 : len(value)-1])
+						} else {
+							if len(value) > 50 {
+								value = value[:47] + "..."
+							}
+							label.SetText(value)
 						}
-						label.SetText(value)
 						label.TextStyle = fyne.TextStyle{}
 					}
 				})
